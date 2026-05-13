@@ -1,8 +1,10 @@
-const axios = require('axios');
+const twilio = require('twilio');
 
 // Send the lead summary to the broker's WhatsApp number
 async function notifyBroker(lead) {
-  const { PHONE_NUMBER_ID, ACCESS_TOKEN, BROKER_WHATSAPP } = process.env;
+  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM, BROKER_WHATSAPP } = process.env;
+
+  const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
   const message =
     `🏠 NEW LEAD — LeadPilot\n\n` +
@@ -14,21 +16,11 @@ async function notifyBroker(lead) {
     `Score: ${lead.score}/5 🔥\n\n` +
     `Received: ${lead.timestamp}`;
 
-  await axios.post(
-    `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
-    {
-      messaging_product: 'whatsapp',
-      to: BROKER_WHATSAPP,
-      type: 'text',
-      text: { body: message },
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${ACCESS_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  await client.messages.create({
+    from: TWILIO_WHATSAPP_FROM,
+    to: `whatsapp:+${BROKER_WHATSAPP}`,
+    body: message,
+  });
 }
 
 module.exports = { notifyBroker };
