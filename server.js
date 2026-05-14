@@ -1,9 +1,20 @@
 require('dotenv').config();
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const { handleMessage } = require('./bot');
 
 const app = express();
 app.use(express.urlencoded({ extended: false })); // Twilio sends form-encoded data
+
+// Serve landing page with WhatsApp number injected from env
+app.get('/', (req, res) => {
+  const waNumber = (process.env.TWILIO_WHATSAPP_FROM || '').replace('whatsapp:+', '');
+  const html = fs.readFileSync(path.join(__dirname, 'public/index.html'), 'utf8')
+    .replace(/{{WHATSAPP_NUMBER}}/g, waNumber);
+  res.send(html);
+});
+
 app.use(express.static('public'));
 
 // Incoming WhatsApp messages from Twilio
