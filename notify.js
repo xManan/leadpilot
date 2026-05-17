@@ -1,11 +1,6 @@
-const twilio = require('twilio');
+const { sendText } = require('./whatsapp');
 
-// Send the lead summary to the broker's WhatsApp number
 async function notifyBroker(lead) {
-  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM, BROKER_WHATSAPP } = process.env;
-
-  const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-
   const message =
     `🏠 NEW LEAD — LeadPilot\n\n` +
     `Name: ${lead.name}\n` +
@@ -16,11 +11,7 @@ async function notifyBroker(lead) {
     `Score: ${lead.score}/5 🔥\n\n` +
     `Received: ${lead.timestamp}`;
 
-  await client.messages.create({
-    from: TWILIO_WHATSAPP_FROM,
-    to: `whatsapp:+${BROKER_WHATSAPP}`,
-    body: message,
-  });
+  await sendText(process.env.BROKER_WHATSAPP, message);
 }
 
 module.exports = { notifyBroker };

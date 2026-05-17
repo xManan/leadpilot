@@ -5,11 +5,11 @@ const path = require('path');
 const { handleMessage } = require('./bot');
 
 const app = express();
-app.use(express.urlencoded({ extended: false })); // Twilio sends form-encoded data
+app.use(express.json());
 
 // Serve landing page with WhatsApp number injected from env
 app.get('/', (req, res) => {
-  const waNumber = (process.env.TWILIO_WHATSAPP_FROM || '').replace('whatsapp:+', '');
+  const waNumber = process.env.WA_NUMBER || '';
   const html = fs.readFileSync(path.join(__dirname, 'public/index.html'), 'utf8')
     .replace(/{{WHATSAPP_NUMBER}}/g, waNumber);
   res.send(html);
@@ -17,22 +17,43 @@ app.get('/', (req, res) => {
 
 app.use(express.static('public'));
 
-// Incoming WhatsApp messages from Twilio
+// Meta webhook verification
+app.get('/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
+    console.log('Webhook verified');
+    return res.status(200).send(challenge);
+  }
+  res.sendStatus(403);
+});
+
+// Incoming WhatsApp messages
 app.post('/webhook', async (req, res) => {
+  res.sendStatus(200); // Respond immediately so Meta doesn't retry
+
   try {
-    const from = req.body.From; // e.g. "whatsapp:+919876543210"
-    const text = req.body.Body;
+    const value = req.body?.entry?.[0]?.changes?.[0]?.value;
+    const message = value?.messages?.[0];
 
-    if (!from || !text) return res.sendStatus(200);
+    if (!message) return;
 
-    const reply = await handleMessage(from, text);
+    const from = message.from;
+    let input;
 
-    // Respond with TwiML
-    res.set('Content-Type', 'text/xml');
-    res.send(`<Response><Message>${reply}</Message></Response>`);
+    if (message.type === 'text') {
+      input = message.text.body;
+    } else if (message.type === 'interactive') {
+      input = message.interactive.button_reply.id;
+    } else {
+      return; // ignore media, reactions, etc.
+    }
+
+    await handleMessage(from, input);
   } catch (err) {
     console.error('Webhook error:', err.message);
-    res.sendStatus(500);
   }
 });
 
