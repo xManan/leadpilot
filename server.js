@@ -45,15 +45,18 @@ app.post('/webhook', async (req, res) => {
 
     if (message.type === 'text') {
       input = message.text.body;
+      console.log(`[IN] text from ${from}: "${input}"`);
     } else if (message.type === 'interactive') {
       input = message.interactive.button_reply.id;
+      console.log(`[IN] button from ${from}: "${input}"`);
     } else {
-      return; // ignore media, reactions, etc.
+      console.log(`[IN] ignored message type: ${message.type} from ${from}`);
+      return;
     }
 
     await handleMessage(from, input);
   } catch (err) {
-    console.error('Webhook error:', err.message);
+    console.error(`[ERR] Webhook error: ${err.message}`);
   }
 });
 

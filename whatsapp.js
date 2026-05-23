@@ -12,31 +12,45 @@ function headers() {
 }
 
 async function sendText(to, body) {
-  await axios.post(apiUrl(), {
-    messaging_product: 'whatsapp',
-    to,
-    type: 'text',
-    text: { body },
-  }, { headers: headers() });
+  try {
+    await axios.post(apiUrl(), {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: { body },
+    }, { headers: headers() });
+    console.log(`[OUT] text sent to ${to}`);
+  } catch (err) {
+    const detail = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+    console.error(`[OUT ERR] sendText to ${to} failed: ${detail}`);
+    throw err;
+  }
 }
 
 // buttons = [{ id: 'btn_id', title: 'Label' }, ...]  max 3
 async function sendButtons(to, body, buttons) {
-  await axios.post(apiUrl(), {
-    messaging_product: 'whatsapp',
-    to,
-    type: 'interactive',
-    interactive: {
-      type: 'button',
-      body: { text: body },
-      action: {
-        buttons: buttons.map(b => ({
-          type: 'reply',
-          reply: { id: b.id, title: b.title },
-        })),
+  try {
+    await axios.post(apiUrl(), {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: body },
+        action: {
+          buttons: buttons.map(b => ({
+            type: 'reply',
+            reply: { id: b.id, title: b.title },
+          })),
+        },
       },
-    },
-  }, { headers: headers() });
+    }, { headers: headers() });
+    console.log(`[OUT] buttons sent to ${to}`);
+  } catch (err) {
+    const detail = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+    console.error(`[OUT ERR] sendButtons to ${to} failed: ${detail}`);
+    throw err;
+  }
 }
 
 module.exports = { sendText, sendButtons };
